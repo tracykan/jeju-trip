@@ -21,6 +21,7 @@ html{scroll-behavior:smooth}
 body{background:var(--paper);color:var(--deep);font-family:var(--font);font-size:15px;line-height:1.65;-webkit-text-size-adjust:100%}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--paper)}
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 h1,h2,h3,h4{font-weight:700;margin:0;text-wrap:balance;color:var(--night)}
 p{margin:0}
 button,input,select,textarea{font:inherit;color:inherit}
@@ -91,15 +92,15 @@ section{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px);display:flex
 .now-next b{font-size:16px}
 .now-next .t{font-size:13px;color:var(--muted)}
 .mini{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
-.mini li{display:grid;grid-template-columns:50px 18px 1fr;align-items:center;gap:6px;font-size:14px;padding:3px 0}
+.mini li{display:grid;grid-template-columns:50px 30px 1fr;align-items:center;gap:6px;font-size:14px;padding:3px 0}
 .mini .tm{color:var(--muted);font-size:13px}
-.mini .dt{width:12px;height:12px;border-radius:50%;border:2.5px solid var(--ink);background:var(--card);justify-self:center}
+.mini .ic{width:28px;height:28px;display:grid;place-items:center;justify-self:center;font-size:17px;line-height:1;border-radius:50%;border:2px solid transparent}
 .mini li.past{color:var(--muted)}
-.mini li.past .dt{background:var(--stone)}
-.mini li.cur .dt{background:var(--tang);width:16px;height:16px}
+.mini li.past .ic{opacity:.45;filter:grayscale(1)}
+.mini li.cur .ic{background:var(--tang);border-color:var(--ink)}
 .mini li.cur{font-weight:700}
 .mini li.mv{font-size:12.5px;color:var(--muted)}
-.mini li.mv .dt{width:7px;height:7px;border-width:2px}
+.mini li.mv .ic{font-size:14px}
 .stay-line{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 
 /* 航班 */
@@ -482,7 +483,7 @@ dialog h3{font-size:19px}
     <h3 id="itemDlgH">編輯行程</h3>
     <div class="g2">
       <label class="fld" for="f-day">日期<select id="f-day"></select></label>
-      <label class="fld" for="f-kind">類型<select id="f-kind"><option value="spot">景點／活動</option><option value="meal">用餐</option><option value="stay">住宿／休息</option><option value="move">移動</option></select></label>
+      <label class="fld" for="f-kind">類型<select id="f-kind"><option value="spot">景點／活動</option><option value="meal">用餐</option><option value="stay">住宿／休息</option><option value="move">移動</option><option value="flight">坐飛機</option></select></label>
       <label class="fld" for="f-start">開始<input type="time" id="f-start" required></label>
       <label class="fld" for="f-end">結束（可空白）<input type="time" id="f-end"></label>
     </div>
@@ -596,6 +597,7 @@ const HOTELS=[
   {name:"Stay OI",area:"涯月中山間區・包棟",when:"12/8–12/9・2 晚",rooms:"包棟",dates:["2026-12-08","2026-12-09"],g:"Stay OI Jeju Aewol",n:"Stay OI 애월",extra:"最晚入住時間要先問房東；第一晚自己煮。"},
   {name:"Ocean Suites Jeju Hotel",area:"濟州市",when:"12/10・1 晚",rooms:"2 間房",dates:["2026-12-10"],g:"Ocean Suites Jeju Hotel",n:"오션스위츠 제주호텔"}
 ];
+const KIND_IC={move:"🚗",flight:"✈️",spot:"📍",stay:"🏠",meal:"🍴"};
 const TR={"自駕":"car","飛機":"air","接駁車":"bus","步行":"walk","不移動":"stay"};
 
 const S={items:new Map(),days:new Map(),exp:new Map(),todos:new Map(),settings:{families:["俊成家","Mayu家"],rate:0.023},rain:null,loaded:{items:false,days:false,exp:false,todos:false}};
@@ -688,7 +690,7 @@ function renderNow(){
   const nextHTML=(isToday&&cur&&next)?`<div class="now-next"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="#F2A14E" stroke="#3E3A39" stroke-width="2.5"/><path d="M10 8 L16 13 L10 18" fill="none" stroke="#3E3A39" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="t num">下一站・${esc(next[1].start)}・${inMin(mins(next[1].start)-sn.min)}</div><b>${esc(next[1].title)}</b></div></div>`:"";
   const h=hotelFor(i);
   box.innerHTML=`<div class="now-top"><span class="lbl">${esc(lbl)}</span>${navBtns}</div>${heroHTML}${nextHTML}
-  <ol class="mini">${list.map(([id,it])=>`<li class="${state[id]||""} ${it.kind==="move"?"mv":""}"><span class="tm num">${esc(it.start)}</span><span class="dt"></span><span>${esc(it.title)}${it.must?' <span class="must-b">必去</span>':""}</span></li>`).join("")}</ol>
+  <ol class="mini">${list.map(([id,it])=>`<li class="${state[id]||""} ${it.kind==="move"?"mv":""}"><span class="tm num">${esc(it.start)}</span><span class="ic" aria-hidden="true">${KIND_IC[it.kind]||KIND_IC.spot}</span><span>${esc(it.title)}${it.must?' <span class="must-b">必去</span>':""}</span></li>`).join("")}</ol>
   <p class="stay-line"><svg width="18" height="18" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 14 L15 5 L26 14 V26 H4 Z" fill="#FCF1D0" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/></svg>${h?`今晚住 ${esc(h.name)}・<a href="${g(h.g)}" target="_blank" rel="noopener">地圖</a>`:"今晚回到台灣的家"}</p>`;
 }
 function heroLinks(it){
