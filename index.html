@@ -186,6 +186,14 @@ section{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px);display:flex
 .del{border:none;background:none;color:var(--camellia);font-size:12px;text-decoration:underline;padding:0}
 .empty{padding:22px 16px;text-align:center;color:var(--muted);border:2.5px dashed var(--ink);border-radius:var(--r);background:var(--card);font-size:14px}
 .add-row{display:flex;justify-content:center}
+.nav-row{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center}
+.nav-btn{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;text-decoration:none;color:#FFFFFF;background:#03A94F;border:2px solid var(--ink);border-radius:999px;padding:3px 12px 3px 8px;box-shadow:0 2px 0 var(--ink)}
+.nav-btn:active{transform:translateY(2px);box-shadow:none}
+.nav-btn i{font-style:normal;width:18px;height:18px;border-radius:5px;background:#FFFFFF;color:#03A94F;display:grid;place-items:center;font-size:12px;font-weight:700}
+.t-leg{background:var(--leaf-soft)}.t-leg::before{background:var(--leaf)}
+.loc-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:4px}
+.loc-st{font-size:12.5px;color:var(--navy)}
+.loc-st.bad{color:var(--camellia)}
 
 .plan-b{padding:14px 16px;display:flex;flex-direction:column;gap:6px;font-size:14px;background:var(--leaf-soft)}
 .plan-b .row{display:flex;gap:10px;align-items:center}
@@ -525,7 +533,8 @@ dialog h3{font-size:19px}
 <section id="plan" aria-labelledby="planH">
   <div class="sec-h">
     <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><rect x="4" y="6" width="22" height="20" rx="5" fill="#FFFFFF" stroke="#3E3A39" stroke-width="3"/><path d="M4 12 H26" stroke="#3E3A39" stroke-width="3"/><path d="M10 3 V8 M20 3 V8" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/><circle cx="15" cy="19" r="3" fill="#D4555A"/></svg>
-    <h2 id="planH">每日行程</h2>
+    <h2 id="planH">每日行程</h2><span class="sp"></span>
+    <button class="btn sm warm w" type="button" id="autoLoc">自動找位置</button>
   </div>
   <div class="tabs" id="tabs" role="tablist" aria-label="選擇日期"></div>
   <div id="dayView"></div>
@@ -586,6 +595,10 @@ dialog h3{font-size:19px}
       <label class="fld" for="f-end">結束（可空白）<input type="time" id="f-end"></label>
     </div>
     <label class="fld" for="f-title">名稱<input type="text" id="f-title" required maxlength="60"></label>
+    <div class="fld"><label for="f-loc">位置（算車程、Naver 導航用）</label>
+      <textarea id="f-loc" rows="2" maxlength="1000" placeholder="在 Naver 地圖 App 按「分享 → 複製」，整段貼在這裡；也可以直接打韓文地址"></textarea>
+      <div class="loc-row"><button class="btn sm" type="button" id="f-gps">用我現在的位置</button><span class="loc-st" id="f-loc-st" aria-live="polite"></span><span class="sp" style="flex:1"></span><button class="del" type="button" id="f-loc-clr">清除位置</button></div>
+    </div>
     <div class="g2">
       <label class="fld" for="f-tr">交通方式<select id="f-tr"><option>自駕</option><option>步行</option><option>接駁車</option><option>飛機</option><option>不移動</option></select></label>
       <label class="fld" for="f-travel">車程（例：約 20 分）<input type="text" id="f-travel" maxlength="20"></label>
@@ -802,8 +815,10 @@ function renderNow(){
 }
 function heroLinks(it){
   const pk=(it.parking||[]).slice(0,2).map(p=>({t:"停車場・"+p.name,u:safeUrl(p.u)||g(p.addr||p.name)}));
-  return linksHTML(pk.concat((it.links||[]).slice(0,3)));
+  const leg=it.leg&&it.leg.key&&S.legKeys.get(itemIdOf(it))===it.leg.key?`<span class="t num">從上一站開車 ${it.leg.km} km・約 ${fmtMin(it.leg.min)}</span>`:"";
+  return leg+(it.kind==="move"?"":`<div class="nav-row">${navHTML(it)}</div>`)+linksHTML(pk.concat((it.links||[]).slice(0,3)));
 }
+function itemIdOf(it){for(const [id,x] of S.items)if(x===it)return id;return ""}
 function inMin(d){if(d<=0)return "就是現在";if(d<60)return `${d} 分鐘後`;return `${Math.floor(d/60)} 小時 ${d%60} 分後`}
 
 /* 日期切換 */
@@ -829,21 +844,116 @@ function itemHTML(id,it){
   <div class="tl-time num"><b>${esc(it.start)}</b>${it.end?`<span>${esc(it.end)}</span>`:""}</div>
   <div class="tl-rail ${it.must?"must":""}" aria-hidden="true"></div>
   <article class="tl-card ${flash.has(id)?"flash":""}">
-    <div class="tags">${tagHTML(it)}${it.must?'<span class="must-b">必去</span>':""}</div>
+    <div class="tags">${tagHTML(it)}${legHTML(id,it)}${it.must?'<span class="must-b">必去</span>':""}</div>
     <h4>${esc(it.title)}</h4>
     ${it.desc?`<p class="desc">${esc(it.desc)}</p>`:""}
     ${it.kind==="meal"&&it.eat?`<div class="eat"><b>必吃</b>${eatHTML(it.eat)}</div>`:""}
     ${it.note?`<p class="note"><span>備註</span>${esc(it.note)}</p>`:""}
     ${pkHTML(it.parking,id)}
+    ${mv?"":`<div class="nav-row">${navHTML(it)}${it.loc&&(it.loc.src==="auto"||it.loc.src==="addr")?`<span class="hint">位置是用地址搜尋找到的，出發前可以先點一下確認</span>`:""}</div>`}
     ${linksHTML(it.links)}
     <div class="card-foot">
-      <span class="foot-l">${ex.length?`<button class="spend has" type="button" data-act="exp" aria-expanded="${open}">已花 <span class="num">${fmtK(sum)}</span>・${ex.length} 筆</button>`:(mv?"":`<button class="spend w" type="button" data-act="add-exp">＋ 記一筆</button>`)}${mv?"":`<button class="spend w" type="button" data-act="pk-add">＋ 停車場</button>`}</span>
+      <span class="foot-l">${ex.length?`<button class="spend has" type="button" data-act="exp" aria-expanded="${open}">已花 <span class="num">${fmtK(sum)}</span>・${ex.length} 筆</button>`:(mv?"":`<button class="spend w" type="button" data-act="add-exp">＋ 記一筆</button>`)}${mv?"":`<button class="spend w" type="button" data-act="pk-add">＋ 停車場</button>`}${mv||validLoc(it.loc)?"":`<button class="spend w" type="button" data-act="edit-loc">＋ 位置</button>`}</span>
       <button class="edit-btn w" type="button" data-act="edit">編輯</button>
     </div>
     ${open&&ex.length?`<div class="exp-in">${ex.map(([eid,e])=>expRow(eid,e)).join("")}<div class="w"><button class="btn sm warm" type="button" data-act="add-exp">＋ 再記一筆</button></div></div>`:""}
     ${it.byName?`<p class="by">最後由 ${esc(it.byName)} 更新</p>`:""}
   </article></li>`;
 }
+/* 位置：從 Naver 連結／分享內容／地址找座標；車程：用開放地圖路線服務（OSRM）算開車距離與時間 */
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function validLoc(l){return !!(l&&isFinite(l.lat)&&isFinite(l.lng)&&l.lat>32&&l.lat<39&&l.lng>124&&l.lng<132)}
+function parseLoc(text){
+  const t=String(text||"");let m;
+  m=t.match(/[?&,]c=(1[34]\d{6}(?:\.\d+)?),(3[89]\d{5}(?:\.\d+)?|4[0-6]\d{5}(?:\.\d+)?)/);
+  if(m){const R=20037508.34;const lng=m[1]/R*180;const lat=Math.atan(Math.exp(m[2]/R*Math.PI))*360/Math.PI-90;return {lat,lng}}
+  m=t.match(/(3[3-8]\.\d{3,})[^\d\n]{1,8}(1[23]\d\.\d{3,})/);if(m)return {lat:+m[1],lng:+m[2]};
+  m=t.match(/(1[23]\d\.\d{3,})[^\d\n]{1,8}(3[3-8]\.\d{3,})/);if(m)return {lat:+m[2],lng:+m[1]};
+  return null;
+}
+function naverSearchQ(u){const m=String(u||"").match(/map\.naver\.com\/(?:p|v5)\/search\/([^/?#]+)/);if(!m)return "";try{return decodeURIComponent(m[1])}catch(e){return ""}}
+function googleQ(u){try{const x=new URL(u);return x.hostname.includes("google")?(x.searchParams.get("query")||x.searchParams.get("q")||""):""}catch(e){return ""}}
+function locQueries(text,title,links){
+  const q=[];const add=v=>{v=String(v||"").replace(/\s+/g," ").trim();if(v&&v.length>1&&!q.includes(v))q.push(v)};
+  const lines=String(text||"").split("\n").map(s=>s.trim()).filter(Boolean);
+  lines.forEach(l=>{const u=l.match(/https?:\/\/\S+/);if(u)add(naverSearchQ(u[0]))});
+  const plain=lines.map(l=>l.replace(/https?:\/\/\S+/g,"").replace(/^\[[^\]]*\]\s*/,"").trim()).filter(l=>l&&!/^(네이버|naver)\s*(지도|map)/i.test(l));
+  const isAddr=l=>/(제주|서귀포|애월|안덕|읍|면|동|로|길)/.test(l)&&/\d/.test(l);
+  plain.filter(isAddr).forEach(l=>{add(l);add(l.replace(/\s*\d+(-\d+)?\s*$/,""))});
+  plain.filter(l=>!isAddr(l)).forEach(add);
+  (links||[]).forEach(l=>{add(naverSearchQ(l.u));const gq=googleQ(l.u);if(gq&&!/맛집|restaurant|supermarket/i.test(gq))add(gq)});
+  add(title);
+  return q.slice(0,6);
+}
+let geoLast=0;
+async function geocode(q){
+  const wait=Math.max(0,geoLast+1100-Date.now());geoLast=Date.now()+wait;await sleep(wait);
+  const u="https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=kr&accept-language=ko&viewbox=126.08,33.62,127.0,33.1&bounded=1&q="+encodeURIComponent(q);
+  try{const r=await fetch(u,{headers:{Accept:"application/json"}});if(!r.ok)return null;const j=await r.json();if(j&&j[0])return {lat:+j[0].lat,lng:+j[0].lon,q}}catch(e){}
+  return null;
+}
+async function findLoc(queries){for(const q of queries){const r=await geocode(q);if(r)return r}return null}
+function naverUrlIn(text){const m=String(text||"").match(/https?:\/\/(?:naver\.me|m\.place\.naver\.com|map\.naver\.com|place\.map\.naver\.com|map\.naver\.me)\S*/);return m?m[0]:""}
+function naverQuery(it){return it.locQuery||(it.links||[]).map(l=>naverSearchQ(l.u)).find(Boolean)||it.title||""}
+function navHTML(it){
+  if(!it)return "";
+  const app=encodeURIComponent(location.hostname||"jeju-trip");const q=naverQuery(it);const L=validLoc(it.loc)?it.loc:null;
+  const appUrl=L?`nmap://route/car?dlat=${L.lat.toFixed(6)}&dlng=${L.lng.toFixed(6)}&dname=${encodeURIComponent(it.title||"目的地")}&appname=${app}`:`nmap://search?query=${encodeURIComponent(q)}&appname=${app}`;
+  const web=safeUrl(it.naverUrl)||n(q);
+  const phone=window.matchMedia&&matchMedia("(pointer:coarse)").matches;
+  return phone?`<a class="nav-btn" href="${esc(appUrl)}"><i>N</i>Naver 地圖導航</a>`:`<a class="nav-btn" href="${esc(web)}" target="_blank" rel="noopener"><i>N</i>Naver 地圖導航</a>`;
+}
+function fmtMin(m){m=Math.max(1,Math.round(m));return m<60?`${m} 分`:`${Math.floor(m/60)} 小時 ${m%60} 分`}
+const lk=l=>l.lat.toFixed(5)+","+l.lng.toFixed(5);
+S.legKeys=new Map();const legPending=new Set(),legFailed=new Set(),legQ=[];let legBusy=false;
+function scheduleLegs(){clearTimeout(scheduleLegs.t);scheduleLegs.t=setTimeout(planLegs,600)}
+function planLegs(){
+  const all=[...S.items.entries()].sort((a,b)=>(Number(a[1].day)-Number(b[1].day))||mins(a[1].start)-mins(b[1].start)||(a[1].order||0)-(b[1].order||0));
+  const keys=new Map();let prev=null;
+  for(const [id,it] of all){
+    if(!validLoc(it.loc))continue;
+    if(prev){const key=lk(prev.loc)+">"+lk(it.loc);keys.set(id,key);
+      if((!it.leg||it.leg.key!==key)&&!legPending.has(key)&&!legFailed.has(key)&&db){legPending.add(key);legQ.push([id,key,prev.loc,it.loc])}}
+    prev=it;
+  }
+  S.legKeys=keys;renderAll();runLegs();
+}
+async function runLegs(){
+  if(legBusy)return;legBusy=true;
+  while(legQ.length){
+    const [id,key,a,b]=legQ.shift();
+    try{
+      const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lng},${a.lat};${b.lng},${b.lat}?overview=false&alternatives=false&steps=false`);
+      const j=r.ok?await r.json():null;
+      if(j&&j.code==="Ok"&&j.routes&&j.routes[0]){
+        const km=Math.round(j.routes[0].distance/100)/10,min=Math.max(1,Math.round(j.routes[0].duration/60));
+        if(S.items.has(id))await db.doc("items/"+id).update({leg:{key,km,min}});
+      }else legFailed.add(key);
+    }catch(e){legFailed.add(key)}
+    legPending.delete(key);await sleep(400);
+  }
+  legBusy=false;renderAll();
+}
+function legHTML(id,it){
+  const key=S.legKeys.get(id);if(!key)return "";
+  if(it.leg&&it.leg.key===key)return `<span class="tag t-leg">距上一站 ${it.leg.km} km・車程約 ${fmtMin(it.leg.min)}</span>`;
+  if(legFailed.has(key))return `<span class="tag t-leg">暫時算不出車程</span>`;
+  return `<span class="tag t-leg">車程計算中…</span>`;
+}
+async function autoLocate(btn){
+  const todo=[...S.items.entries()].filter(([,it])=>it.kind!=="move"&&!validLoc(it.loc));
+  if(!todo.length){toast("每個行程都已經有位置了");return}
+  btn.disabled=true;let ok=0;const miss=[];
+  for(let k=0;k<todo.length;k++){
+    const [id,it]=todo[k];btn.textContent=`找位置中 ${k+1}/${todo.length}`;
+    const r=await findLoc(locQueries("",it.title,it.links));
+    if(r){ok++;try{await db.doc("items/"+id).update({loc:{lat:r.lat,lng:r.lng,src:"auto"},locQuery:r.q})}catch(e){}}
+    else miss.push(it.title);
+  }
+  btn.disabled=false;btn.textContent="自動找位置";
+  toast(miss.length?`找到 ${ok} 個；${miss.length} 個找不到，請在那個行程按「＋ 位置」貼 Naver 分享`:`全部找到了，共 ${ok} 個`);
+}
+
 function eatHTML(t){const L=String(t).split("\n").map(s=>s.trim()).filter(Boolean);return L.length>1?`<ul>${L.map(s=>`<li>${esc(s)}</li>`).join("")}</ul>`:esc(L[0]||"")}
 function pkLinks(p){
   const q=p.addr||p.name;const out=[];
@@ -953,13 +1063,36 @@ function openItem(id){
   $("#f-desc").value=it.desc||"";$("#f-note").value=it.note||"";$("#f-eat").value=it.eat||"";
   $("#f-eat-wrap").hidden=$("#f-kind").value!=="meal";
   $("#f-links").value=(it.links||[]).map(l=>[l.t,l.u,l.lang].filter(Boolean).join(" | ")).join("\n");
+  dlgLoc=validLoc(it.loc)?{...it.loc}:null;dlgLocText=it.locText||"";$("#f-loc").value=dlgLocText;showLocSt();
   const del=$("#itemDel");del.hidden=!id;del.textContent="刪除這個行程";del.dataset.armed="";
   itemDlg.showModal();
 }
+let dlgLoc=null,dlgLocText="";
+function showLocSt(msg,bad){const el=$("#f-loc-st");el.classList.toggle("bad",!!bad);el.textContent=msg||(dlgLoc?`已設定位置（${dlgLoc.src==="gps"?"現在位置":dlgLoc.src==="naver"?"Naver 連結":"地址搜尋"}）`:"還沒有位置")}
+$("#f-gps").addEventListener("click",()=>{
+  if(!navigator.geolocation){showLocSt("這支手機不能定位",true);return}
+  showLocSt("定位中…");
+  navigator.geolocation.getCurrentPosition(p=>{dlgLoc={lat:p.coords.latitude,lng:p.coords.longitude,src:"gps"};showLocSt()},()=>showLocSt("抓不到位置，請允許網頁使用定位",true),{enableHighAccuracy:true,timeout:15000});
+});
+$("#f-loc-clr").addEventListener("click",()=>{dlgLoc=null;$("#f-loc").value="";showLocSt()});
 $("#itemForm").addEventListener("submit",async ev=>{
   ev.preventDefault();
+  const locText=$("#f-loc").value.trim();let locQuery=null;
+  if(locText&&locText!==dlgLocText){
+    const sub=ev.submitter||$("#itemForm [type=submit]");
+    const coords=parseLoc(locText);
+    if(coords){dlgLoc={...coords,src:"naver"}}
+    else{
+      showLocSt("找位置中…");if(sub)sub.disabled=true;
+      const r=await findLoc(locQueries(locText,$("#f-title").value,parseLinks($("#f-links").value)));
+      if(sub)sub.disabled=false;
+      if(r){dlgLoc={lat:r.lat,lng:r.lng,src:"addr"};locQuery=r.q}
+      else{showLocSt("找不到這個位置。可以改打韓文地址，或到現場按「用我現在的位置」",true);return}
+    }
+  }
   const links=parseLinks($("#f-links").value);
   const data={day:Number($("#f-day").value),kind:$("#f-kind").value,start:$("#f-start").value,end:$("#f-end").value,title:$("#f-title").value.trim(),transport:$("#f-tr").value,travel:$("#f-travel").value.trim(),must:$("#f-must").checked,desc:$("#f-desc").value.trim(),note:$("#f-note").value.trim(),eat:$("#f-eat").value.trim(),links,updatedAt:new Date().toISOString()};
+  data.loc=dlgLoc||null;data.locText=locText;data.naverUrl=naverUrlIn(locText);if(locQuery)data.locQuery=locQuery;
   if(myName)data.byName=myName;
   if(!data.title||!data.start)return;
   const id=editId;itemDlg.close();
@@ -1030,6 +1163,7 @@ document.addEventListener("click",async e=>{
   const act=t.dataset.act;if(!act)return;
   const li=t.closest("[data-id]");const id=li&&li.dataset.id;
   if(act==="edit")openItem(id);
+  else if(act==="edit-loc"){openItem(id);setTimeout(()=>$("#f-loc").focus(),60)}
   else if(act==="add-item")openItem(null);
   else if(act==="add-exp")openExpDlg(id||"");
   else if(act==="exp"){openExp.has(id)?openExp.delete(id):openExp.add(id);renderDay(false)}
@@ -1099,6 +1233,7 @@ async function doImport(file){
   try{for(const j of jobs)await j.commit();toast(`匯入完成，共 ${total} 筆`)}catch(e){toast(errMsg(e))}
 }
 document.addEventListener("change",e=>{if(e.target.id==="importFile"&&e.target.files[0])doImport(e.target.files[0])});
+$("#autoLoc").addEventListener("click",e=>{if(!db){toast("還沒連上共用資料");return}autoLocate(e.currentTarget)});
 document.addEventListener("click",async e=>{
   const t=e.target.closest("button");if(!t)return;
   if(t.id==="mkTrip"){KEY=newKey();LS.set("jeju-trip-key",KEY);location.href=inviteUrl(KEY)}
@@ -1126,7 +1261,7 @@ async function boot(){
     if(key==="items"&&S.loaded.items&&!snap.metadata.hasPendingWrites)snap.docChanges().forEach(c=>{if(c.type!=="removed")flash.add(c.doc.id)});
     map.clear();snap.docs.forEach(d=>map.set(d.id,d.data()));
     if(!snap.metadata.fromCache){S.loaded[key]=true;done()}
-    if(key==="items")renderImport();
+    if(key==="items"){renderImport();scheduleLegs()}
     renderAll();
   },err=>{clearTimeout(timer);S.loaded[key]=true;setSync("err",err&&err.code==="permission-denied"?"沒有權限":"同步中斷，請重新整理");renderAll()});
   sub("items",S.items,"items");sub("days",S.days,"days");sub("expenses",S.exp,"exp");sub("todos",S.todos,"todos");
