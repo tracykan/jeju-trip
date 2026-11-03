@@ -94,13 +94,13 @@ section{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px);display:flex
 .mini{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
 .mini li{display:grid;grid-template-columns:50px 30px 1fr;align-items:center;gap:6px;font-size:14px;padding:3px 0}
 .mini .tm{color:var(--muted);font-size:13px}
-.mini .ic{width:28px;height:28px;display:grid;place-items:center;justify-self:center;font-size:17px;line-height:1;border-radius:50%;border:2px solid transparent}
+.mini .ic{width:30px;height:30px;display:grid;place-items:center;justify-self:center;line-height:0;border-radius:50%;border:2px solid transparent}
 .mini li.past{color:var(--muted)}
 .mini li.past .ic{opacity:.45;filter:grayscale(1)}
 .mini li.cur .ic{background:var(--tang);border-color:var(--ink)}
 .mini li.cur{font-weight:700}
 .mini li.mv{font-size:12.5px;color:var(--muted)}
-.mini li.mv .ic{font-size:14px}
+.mini li.mv .ic svg{width:25px;height:25px}
 .stay-line{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
 
 /* 航班 */
@@ -159,6 +159,7 @@ section{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px);display:flex
 .tl-card .note span{font-weight:700;margin-right:6px;color:var(--navy)}
 .kind-meal .tl-card{background:#FFFDF4}
 .tags{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.tags:empty{display:none}
 .tag{font-size:12px;border:2px solid var(--ink);border-radius:999px;padding:0 9px;line-height:1.6;display:inline-flex;align-items:center;gap:4px}
 .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--ink)}
 .t-car{background:var(--mist)}.t-car::before{background:var(--navy)}
@@ -597,7 +598,15 @@ const HOTELS=[
   {name:"Stay OI",area:"涯月中山間區・包棟",when:"12/8–12/9・2 晚",rooms:"包棟",dates:["2026-12-08","2026-12-09"],g:"Stay OI Jeju Aewol",n:"Stay OI 애월",extra:"最晚入住時間要先問房東；第一晚自己煮。"},
   {name:"Ocean Suites Jeju Hotel",area:"濟州市",when:"12/10・1 晚",rooms:"2 間房",dates:["2026-12-10"],g:"Ocean Suites Jeju Hotel",n:"오션스위츠 제주호텔"}
 ];
-const KIND_IC={move:"🚗",flight:"✈️",spot:"📍",stay:"🏠",meal:"🍴"};
+/* 今天去哪總覽的類型小插圖 */
+const ICW=b=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#3E3A39" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">${b}</svg>`;
+const KIND_IC={
+  move:ICW('<path d="M2.5 15.5 V12.2 Q2.5 10.3 4.6 10.3 L6.8 6.6 Q7.4 5.6 8.8 5.6 H15.2 Q16.6 5.6 17.2 6.6 L19.4 10.3 Q21.5 10.3 21.5 12.2 V15.5 Z" fill="#7FA36B"/><path d="M8.2 10.3 L9.5 7.6 H14.5 L15.8 10.3 Z" fill="#FFFCF6" stroke-width="1.3"/><circle cx="7.3" cy="16.2" r="2.3" fill="#3E3A39"/><circle cx="16.7" cy="16.2" r="2.3" fill="#3E3A39"/><circle cx="7.3" cy="16.2" r=".8" fill="#FFFCF6" stroke="none"/><circle cx="16.7" cy="16.2" r=".8" fill="#FFFCF6" stroke="none"/>'),
+  flight:ICW('<path d="M21.5 12 Q21.5 10.5 19.3 10.5 H14.6 L9.8 3.2 H7.6 L10.1 10.5 H5.6 L3.9 8 H2.4 L3.4 12 L2.4 16 H3.9 L5.6 13.5 H10.1 L7.6 20.8 H9.8 L14.6 13.5 H19.3 Q21.5 13.5 21.5 12 Z" fill="#DDE4F2"/><circle cx="17.6" cy="12" r=".9" fill="#22396F" stroke="none"/>'),
+  spot:ICW('<path d="M12 21.6 C12 21.6 4.8 14.6 4.8 9.4 A7.2 7.2 0 0 1 19.2 9.4 C19.2 14.6 12 21.6 12 21.6 Z" fill="#D4555A"/><circle cx="12" cy="9.4" r="2.7" fill="#FFFCF6"/>'),
+  stay:ICW('<rect x="5.5" y="10.8" width="13" height="9.4" fill="#FCF1D0"/><path d="M2.8 11.6 L12 3.6 L21.2 11.6 Z" fill="#F2A14E"/><rect x="10.2" y="14.2" width="3.6" height="6" fill="#22396F" stroke-width="1.4"/>'),
+  meal:ICW('<circle cx="12" cy="12.4" r="6.3" fill="#FFFFFF"/><circle cx="12" cy="12.4" r="3.7" stroke-width="1.2"/><path d="M2.6 3.6 V8.4 Q2.6 10 4 10 Q5.4 10 5.4 8.4 V3.6 M4 3.6 V7.8 M4 10 V20.8" stroke-width="1.5"/><path d="M20.2 20.8 V3.6 Q22.2 6.2 21.9 11.2 H20.2" fill="#FFFFFF" stroke-width="1.5"/>')
+};
 const TR={"自駕":"car","飛機":"air","接駁車":"bus","步行":"walk","不移動":"stay"};
 
 const S={items:new Map(),days:new Map(),exp:new Map(),todos:new Map(),settings:{families:["俊成家","Mayu家"],rate:0.023},rain:null,loaded:{items:false,days:false,exp:false,todos:false}};
@@ -706,7 +715,7 @@ function renderTabs(){
 }
 function tagHTML(it){
   const k=TR[it.transport]||"stay";
-  if(!it.transport||it.transport==="不移動")return `<span class="tag t-stay">${it.kind==="stay"?"住宿／休息":"不移動"}</span>`;
+  if(!it.transport||it.transport==="不移動")return "";
   return `<span class="tag t-${k}">${esc(it.transport)}${it.travel?" "+esc(it.travel):""}</span>`;
 }
 function expRow(id,e,withItem){
