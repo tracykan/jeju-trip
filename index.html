@@ -495,7 +495,7 @@ dialog h3{font-size:19px}
     <label class="fld" for="f-eat" id="f-eat-wrap">必吃（這間餐廳一定要點什麼，一行一樣）<textarea id="f-eat" maxlength="600" placeholder="例：黑豬肉五花&#10;鮑魚石鍋飯"></textarea></label>
     <label class="fld" for="f-desc">說明<textarea id="f-desc" maxlength="600"></textarea></label>
     <label class="fld" for="f-note">備註（待確認、提醒）<textarea id="f-note" maxlength="600"></textarea></label>
-    <label class="fld" for="f-links">參考連結（一行一個：名稱 | 網址 | 語言，語言可省略）<textarea id="f-links" maxlength="3000" placeholder="Google 地圖 | https://maps.google.com/... &#10;Naver 地圖 | https://map.naver.com/... | 韓文"></textarea></label>
+    <label class="fld" for="f-links">參考連結（一行一個，直接貼網址就可以；想自訂按鈕名稱就寫：名稱 | 網址 | 語言）<textarea id="f-links" maxlength="3000" placeholder="Google 地圖 | https://maps.google.com/... &#10;Naver 地圖 | https://map.naver.com/... | 韓文"></textarea></label>
     <div class="dlg-foot">
       <button class="btn sm danger" type="button" id="itemDel">刪除這個行程</button>
       <span class="sp"></span>
@@ -537,7 +537,7 @@ dialog h3{font-size:19px}
   <form id="rainForm" method="dialog">
     <h3 id="rainDlgH">編輯雨天／低溫備案</h3>
     <label class="fld" for="r-text">備案內容（一行一項）<textarea id="r-text" maxlength="2000" style="min-height:140px"></textarea></label>
-    <label class="fld" for="r-links">參考連結（一行一個：名稱 | 網址 | 語言，語言可省略）<textarea id="r-links" maxlength="3000"></textarea></label>
+    <label class="fld" for="r-links">參考連結（一行一個，直接貼網址就可以；想自訂按鈕名稱就寫：名稱 | 網址 | 語言）<textarea id="r-links" maxlength="3000"></textarea></label>
     <div class="dlg-foot"><span class="sp"></span><button class="btn sm" type="button" data-close>取消</button><button class="btn sm pri" type="submit">儲存</button></div>
   </form>
 </dialog>
@@ -609,6 +609,18 @@ const dlabel=i=>{const d=new Date(DATES[i]+"T12:00:00+09:00");return `${d.getUTC
 const fmtK=v=>"₩"+Math.round(v).toLocaleString("zh-TW");
 const fmtT=v=>"NT$"+Math.round(v).toLocaleString("zh-TW");
 const safeUrl=u=>/^https?:\/\//i.test(u||"")?u:"";
+/* 參考連結：一行一個，可以只貼網址，也可以寫「名稱 | 網址 | 語言」，順序不拘 */
+function parseLinks(v){
+  return String(v||"").split("\n").map(s=>s.trim()).filter(Boolean).map(line=>{
+    const parts=line.split(/\s*[|｜]\s*/).filter(Boolean).map(x=>/^(www\.)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(x)&&!/^https?:/i.test(x)?"https://"+x:x);
+    const ui=parts.findIndex(x=>safeUrl(x)&&!/\s/.test(x));
+    if(ui<0)return null;
+    const u=parts[ui];const rest=parts.filter((_,i)=>i!==ui);
+    let t=rest[0]||"";
+    if(!t){try{t=new URL(u).hostname.replace(/^www\./,"")}catch(e){t="連結"}}
+    const o={t,u};if(rest[1])o.lang=rest[1];return o;
+  }).filter(Boolean);
+}
 
 function seoulNow(){
   const p=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Seoul",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
@@ -834,7 +846,7 @@ function openItem(id){
 }
 $("#itemForm").addEventListener("submit",async ev=>{
   ev.preventDefault();
-  const links=$("#f-links").value.split("\n").map(s=>s.split("|").map(x=>x.trim())).filter(p=>p.length>=2&&safeUrl(p[1])).map(p=>{const o={t:p[0]||"連結",u:p[1]};if(p[2])o.lang=p[2];return o});
+  const links=parseLinks($("#f-links").value);
   const data={day:Number($("#f-day").value),kind:$("#f-kind").value,start:$("#f-start").value,end:$("#f-end").value,title:$("#f-title").value.trim(),transport:$("#f-tr").value,travel:$("#f-travel").value.trim(),must:$("#f-must").checked,desc:$("#f-desc").value.trim(),note:$("#f-note").value.trim(),eat:$("#f-eat").value.trim(),links,updatedAt:new Date().toISOString()};
   if(myName)data.byName=myName;
   if(!data.title||!data.start)return;
@@ -876,7 +888,6 @@ $("#addExpAll").addEventListener("click",()=>openExpDlg(""));
 
 /* 停車場、備案對話框 */
 const pkDlg=$("#pkDlg"),rainDlg=$("#rainDlg");let pkItem=null;
-const parseLinks=v=>v.split("\n").map(s=>s.split("|").map(x=>x.trim())).filter(p=>p.length>=2&&safeUrl(p[1])).map(p=>{const o={t:p[0]||"連結",u:p[1]};if(p[2])o.lang=p[2];return o});
 $("#pkForm").addEventListener("submit",async ev=>{
   ev.preventDefault();const name=$("#p-name").value.trim();if(!name)return;
   const p={name,addr:$("#p-addr").value.trim(),u:safeUrl($("#p-url").value.trim()),note:$("#p-note").value.trim()};
