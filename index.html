@@ -850,7 +850,7 @@ function itemHTML(id,it){
     ${it.kind==="meal"&&it.eat?`<div class="eat"><b>必吃</b>${eatHTML(it.eat)}</div>`:""}
     ${it.note?`<p class="note"><span>備註</span>${esc(it.note)}</p>`:""}
     ${pkHTML(it.parking,id)}
-    ${mv?"":`<div class="nav-row">${navHTML(it)}${it.loc&&(it.loc.src==="auto"||it.loc.src==="addr")?`<span class="hint">位置是用地址搜尋找到的，出發前可以先點一下確認</span>`:""}</div>`}
+    ${mv||it.kind==="flight"?"":`<div class="nav-row">${navHTML(it)}${it.loc&&(it.loc.src==="auto"||it.loc.src==="addr")?`<span class="hint">位置是用地址搜尋找到的，出發前可以先點一下確認</span>`:""}</div>`}
     ${linksHTML(it.links)}
     <div class="card-foot">
       <span class="foot-l">${ex.length?`<button class="spend has" type="button" data-act="exp" aria-expanded="${open}">已花 <span class="num">${fmtK(sum)}</span>・${ex.length} 筆</button>`:(mv?"":`<button class="spend w" type="button" data-act="add-exp">＋ 記一筆</button>`)}${mv?"":`<button class="spend w" type="button" data-act="pk-add">＋ 停車場</button>`}${mv||validLoc(it.loc)?"":`<button class="spend w" type="button" data-act="edit-loc">＋ 位置</button>`}</span>
