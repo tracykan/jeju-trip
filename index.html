@@ -816,7 +816,7 @@ function renderNow(){
 function heroLinks(it){
   const pk=(it.parking||[]).slice(0,2).map(p=>({t:"停車場・"+p.name,u:safeUrl(p.u)||g(p.addr||p.name)}));
   const leg=it.leg&&it.leg.key&&S.legKeys.get(itemIdOf(it))===it.leg.key?`<span class="t num">從上一站開車 ${it.leg.km} km・約 ${fmtMin(it.leg.min)}</span>`:"";
-  return leg+(it.kind==="move"?"":`<div class="nav-row">${navHTML(it)}</div>`)+linksHTML(pk.concat((it.links||[]).slice(0,3)));
+  return leg+linksHTML(pk.concat((it.links||[]).slice(0,3)));
 }
 function itemIdOf(it){for(const [id,x] of S.items)if(x===it)return id;return ""}
 function inMin(d){if(d<=0)return "就是現在";if(d<60)return `${d} 分鐘後`;return `${Math.floor(d/60)} 小時 ${d%60} 分後`}
