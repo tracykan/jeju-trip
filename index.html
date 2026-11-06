@@ -597,7 +597,7 @@ dialog h3{font-size:19px}
     <label class="fld" for="f-title">名稱<input type="text" id="f-title" required maxlength="60"></label>
     <div class="fld"><label for="f-loc">位置（算車程、Naver 導航用）</label>
       <textarea id="f-loc" rows="2" maxlength="1000" placeholder="在 Naver 地圖 App 按「分享 → 複製」，整段貼在這裡；也可以直接打韓文地址"></textarea>
-      <div class="loc-row"><button class="btn sm" type="button" id="f-gps">用我現在的位置</button><span class="loc-st" id="f-loc-st" aria-live="polite"></span><span class="sp" style="flex:1"></span><button class="del" type="button" id="f-loc-clr">清除位置</button></div>
+      <div class="loc-row"><span class="loc-st" id="f-loc-st" aria-live="polite"></span><span class="sp" style="flex:1"></span><button class="del" type="button" id="f-loc-clr">清除位置</button></div>
     </div>
     <div class="g2">
       <label class="fld" for="f-tr">交通方式<select id="f-tr"><option>自駕</option><option>步行</option><option>接駁車</option><option>飛機</option><option>不移動</option></select></label>
@@ -1070,11 +1070,6 @@ function openItem(id){
 }
 let dlgLoc=null,dlgLocText="";
 function showLocSt(msg,bad){const el=$("#f-loc-st");el.classList.toggle("bad",!!bad);el.textContent=msg||(dlgLoc?`已設定位置（${dlgLoc.src==="gps"?"現在位置":dlgLoc.src==="naver"?"Naver 連結":"地址搜尋"}）`:"還沒有位置")}
-$("#f-gps").addEventListener("click",()=>{
-  if(!navigator.geolocation){showLocSt("這支手機不能定位",true);return}
-  showLocSt("定位中…");
-  navigator.geolocation.getCurrentPosition(p=>{dlgLoc={lat:p.coords.latitude,lng:p.coords.longitude,src:"gps"};showLocSt()},()=>showLocSt("抓不到位置，請允許網頁使用定位",true),{enableHighAccuracy:true,timeout:15000});
-});
 $("#f-loc-clr").addEventListener("click",()=>{dlgLoc=null;$("#f-loc").value="";showLocSt()});
 $("#itemForm").addEventListener("submit",async ev=>{
   ev.preventDefault();
@@ -1089,7 +1084,7 @@ $("#itemForm").addEventListener("submit",async ev=>{
       const r=await findLoc(locQueries(locText,$("#f-title").value,parseLinks($("#f-links").value)));
       if(sub)sub.disabled=false;
       if(r){dlgLoc={lat:r.lat,lng:r.lng,src:"addr"};locQuery=r.q}
-      else{showLocSt("找不到這個位置。可以改打韓文地址，或到現場按「用我現在的位置」",true);return}
+      else{showLocSt("找不到這個位置。可以改打韓文地址，或貼 Naver 地圖的分享內容",true);return}
     }
   }
   const links=parseLinks($("#f-links").value);
