@@ -303,6 +303,27 @@ dialog h3{font-size:19px}
 @keyframes car{0%{transform:translate(120px,0)}100%{transform:translate(215px,0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+/* 多選一分支 */
+.tl-rail.fork::after{border-radius:4px;transform:rotate(45deg);background:var(--tang)}
+.alt-wrap{min-width:0;margin:6px 0 10px}
+.alt-head{position:relative;display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;min-height:32px;padding:2px 0 6px}
+.alt-head::before{content:"";position:absolute;left:-15px;top:13px;width:21px;height:3px;background:var(--ink)}
+.alt-head b{margin-left:6px;background:var(--tang-soft);border:2px solid var(--ink);border-radius:8px;padding:0 8px;font-size:13px;transform:rotate(-2deg)}
+.alt-head span{font-size:12.5px;color:var(--muted)}
+.alt-opt{position:relative;padding-left:24px}
+.alt-opt::before{content:"";position:absolute;left:0;top:-6px;width:24px;height:36px;border-left:3px solid var(--ink);border-bottom:3px solid var(--ink);border-bottom-left-radius:14px}
+.alt-opt::after{content:"";position:absolute;left:0;top:18px;bottom:-8px;width:3px;background:var(--ink)}
+.alt-head+.alt-opt::before{top:-24px;height:54px}
+.alt-opt:nth-last-child(2)::after{display:none}
+.alt-opt .tl-card{margin:0 0 10px}
+.alt-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.alt-l{flex:none;width:24px;height:24px;display:grid;place-items:center;border:2px solid var(--ink);border-radius:50%;background:var(--tang-soft);font-size:13px;font-weight:700;line-height:1}
+.alt-tm{font-size:13px;color:var(--muted)}
+.alt-top .btn{margin-left:auto}
+.alt-more{padding-left:24px}
+.alt-done{font-size:12px;font-weight:700;background:var(--tang-soft);border:2px solid var(--ink);border-radius:8px;padding:0 8px}
+.alt-rest{display:flex;flex-wrap:wrap;align-items:center;gap:6px;border-top:2px dashed var(--stone);padding-top:8px;font-size:13px;color:var(--muted)}
+.mini .alt-w{font-size:12px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
@@ -595,6 +616,7 @@ dialog h3{font-size:19px}
       <label class="fld" for="f-end">結束（可空白）<input type="time" id="f-end"></label>
     </div>
     <label class="fld" for="f-title">名稱<input type="text" id="f-title" required maxlength="60"></label>
+    <label class="fld" for="f-alt" id="f-alt-wrap">多選一（還沒決定要去哪個，就選要跟哪個行程比較）<select id="f-alt"></select></label>
     <div class="fld"><label for="f-loc">位置（算車程、Naver 導航用）</label>
       <textarea id="f-loc" rows="2" maxlength="1000" placeholder="在 Naver 地圖 App 按「分享 → 複製」，整段貼在這裡；也可以直接打韓文地址"></textarea>
       <div class="loc-row"><span class="loc-st" id="f-loc-st" aria-live="polite"></span><span class="sp" style="flex:1"></span><button class="del" type="button" id="f-loc-clr">清除位置</button></div>
@@ -711,6 +733,7 @@ const HOTELS=[
 /* 今天去哪總覽的類型小插圖 */
 const ICW=b=>`<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#3E3A39" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round">${b}</svg>`;
 const KIND_IC={
+  alt:ICW('<path d="M12 22 V13 Q12 8 6 6.5 M12 13 Q12 8 18 6.5" fill="none" stroke="#F2A14E" stroke-width="3.4" stroke-linecap="round"/><path d="M4 10 L5 5.5 L9.5 6 M20 10 L19 5.5 L14.5 6" fill="none" stroke="#F2A14E" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>'),
   move:ICW('<path d="M2.5 15.5 V12.2 Q2.5 10.3 4.6 10.3 L6.8 6.6 Q7.4 5.6 8.8 5.6 H15.2 Q16.6 5.6 17.2 6.6 L19.4 10.3 Q21.5 10.3 21.5 12.2 V15.5 Z" fill="#7FA36B"/><path d="M8.2 10.3 L9.5 7.6 H14.5 L15.8 10.3 Z" fill="#FFFCF6" stroke-width="1.3"/><circle cx="7.3" cy="16.2" r="2.3" fill="#3E3A39"/><circle cx="16.7" cy="16.2" r="2.3" fill="#3E3A39"/><circle cx="7.3" cy="16.2" r=".8" fill="#FFFCF6" stroke="none"/><circle cx="16.7" cy="16.2" r=".8" fill="#FFFCF6" stroke="none"/>'),
   flight:ICW('<path d="M21.5 12 Q21.5 10.5 19.3 10.5 H14.6 L9.8 3.2 H7.6 L10.1 10.5 H5.6 L3.9 8 H2.4 L3.4 12 L2.4 16 H3.9 L5.6 13.5 H10.1 L7.6 20.8 H9.8 L14.6 13.5 H19.3 Q21.5 13.5 21.5 12 Z" fill="#DDE4F2"/><circle cx="17.6" cy="12" r=".9" fill="#22396F" stroke="none"/>'),
   spot:ICW('<path d="M12 21.6 C12 21.6 4.8 14.6 4.8 9.4 A7.2 7.2 0 0 1 19.2 9.4 C19.2 14.6 12 21.6 12 21.6 Z" fill="#D4555A"/><circle cx="12" cy="9.4" r="2.7" fill="#FFFCF6"/>'),
@@ -754,6 +777,24 @@ function itemsOf(day){
   return [...S.items.entries()].filter(([,it])=>Number(it.day)===day)
     .sort((a,b)=>mins(a[1].start)-mins(b[1].start)||(a[1].order||0)-(b[1].order||0));
 }
+/* 多選一：同一天、altGroup 相同的行程是一組；選定後只有選中的算進行程 */
+function altGroupsOf(day){
+  const m=new Map();
+  itemsOf(day).forEach(e=>{const g=e[1].altGroup;if(g){if(m.has(g))m.get(g).push(e);else m.set(g,[e])}});
+  for(const [g,a] of m)if(a.length<2)m.delete(g);
+  return m;
+}
+function dayEntries(day){
+  const gs=altGroupsOf(day),seen=new Set(),out=[];
+  for(const [id,it] of itemsOf(day)){
+    const opts=it.altGroup&&gs.get(it.altGroup);
+    if(!opts){out.push({id,it});continue}
+    const pick=opts.find(e=>e[1].altPicked);
+    if(pick){if(pick[0]===id)out.push({id,it,rest:opts.filter(e=>e[0]!==id)});continue}
+    if(!seen.has(it.altGroup)){seen.add(it.altGroup);out.push({gid:it.altGroup,opts})}
+  }
+  return out;
+}
 function rate(){const r=Number(S.settings.rate);return r>0?r:0.023}
 function toK(e){const a=Number(e.amount)||0;return e.cur==="TWD"?a/rate():a}
 function expsFor(id){return [...S.exp.entries()].filter(([,e])=>e.itemId===id).sort((a,b)=>String(a[1].at).localeCompare(String(b[1].at)))}
@@ -780,7 +821,7 @@ function renderNow(){
   let mode=live>=0?"live":(sn.date<DATES[0]?"pre":"post");
   if(nowDay==null)nowDay=live>=0?live+1:1;
   const day=nowDay,i=day-1;const isToday=live===i;
-  const list=itemsOf(day);
+  const list=dayEntries(day).map(e=>e.opts?["alt:"+e.gid,{kind:"alt",start:e.opts[0][1].start,title:"多選一："+e.opts.map(o=>o[1].title).join("／")}]:[e.id,e.it]);
   let lbl;
   if(isToday)lbl=`今天 Day ${day}・${dlabel(i)}・韓國時間 ${sn.hm}`;
   else if(mode==="pre"&&day===1)lbl=`出發前預覽・Day 1・${dlabel(0)}`;
@@ -809,7 +850,7 @@ function renderNow(){
   const nextHTML=(isToday&&cur&&next)?`<div class="now-next"><svg width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><circle cx="13" cy="13" r="10" fill="#F2A14E" stroke="#3E3A39" stroke-width="2.5"/><path d="M10 8 L16 13 L10 18" fill="none" stroke="#3E3A39" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg><div><div class="t num">下一站・${esc(next[1].start)}・${inMin(mins(next[1].start)-sn.min)}</div><b>${esc(next[1].title)}</b></div></div>`:"";
   const h=hotelFor(i);
   box.innerHTML=`<div class="now-top"><span class="lbl">${esc(lbl)}</span>${navBtns}</div>${heroHTML}${nextHTML}
-  <ol class="mini">${list.map(([id,it])=>`<li class="${state[id]||""} ${it.kind==="move"?"mv":""}"><span class="tm num">${esc(it.start)}</span><span class="ic" aria-hidden="true">${KIND_IC[it.kind]||KIND_IC.spot}</span><span>${esc(it.title)}${it.must?' <span class="must-b">必去</span>':""}</span></li>`).join("")}</ol>
+  <ol class="mini">${list.map(([id,it])=>`<li class="${state[id]||""} ${it.kind==="move"?"mv":""}"><span class="tm num">${esc(it.start)}</span><span class="ic" aria-hidden="true">${KIND_IC[it.kind]||KIND_IC.spot}</span><span>${esc(it.title)}${it.must?' <span class="must-b">必去</span>':""}${it.kind==="alt"?' <span class="alt-w">還沒決定</span>':""}</span></li>`).join("")}</ol>
   ${bkLines((S.days.get(String(day))||{}).backup).length?`<p class="stay-line">備案景點：${esc(bkLines(S.days.get(String(day)).backup).join("、"))}</p>`:""}
   <p class="stay-line"><svg width="18" height="18" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 14 L15 5 L26 14 V26 H4 Z" fill="#FCF1D0" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/></svg>${h?`今晚住 ${esc(h.name)}・<a href="${g(h.g)}" target="_blank" rel="noopener">地圖</a>`:"今晚回到台灣的家"}</p>`;
 }
@@ -837,14 +878,32 @@ function expRow(id,e,withItem){
   return `<div class="exp-row"><span>${esc(e.memo||(it?it.title:"其他花費"))}${withItem&&it&&e.memo?`<br><span class="it">${esc(it.title)}</span>`:""}</span><span class="amt num">${e.cur==="TWD"?fmtT(e.amount):fmtK(e.amount)}</span>
   <span class="sm">${e.cat&&e.cat!=="一般"?`<span class="chip c">${esc(e.cat)}</span>`:""}<span class="chip ${pay?"b":""}">${esc(fam(pay))}付</span>${e.split===false?"自家":"兩家平分"}${e.byName?`・${esc(e.byName)}記`:""}<span class="w"><button class="del" type="button" data-del-exp="${esc(id)}">${confirmDel===id?"再按一次刪除":"刪除"}</button></span></span></div>`;
 }
-function itemHTML(id,it){
-  const ex=expsFor(id);const sum=ex.reduce((s,[,e])=>s+toK(e),0);const open=openExp.has(id);
+function itemHTML(id,it,rest){
   const mv=it.kind==="move";
   return `<li class="tl-li ${mv?"is-move":""} kind-${esc(it.kind||"spot")}" data-id="${esc(id)}">
   <div class="tl-time num"><b>${esc(it.start)}</b>${it.end?`<span>${esc(it.end)}</span>`:""}</div>
   <div class="tl-rail ${it.must?"must":""}" aria-hidden="true"></div>
-  <article class="tl-card ${flash.has(id)?"flash":""}">
-    <div class="tags">${tagHTML(it)}${legHTML(id,it)}${it.must?'<span class="must-b">必去</span>':""}</div>
+  ${cardHTML(id,it,{rest})}</li>`;
+}
+function altHTML(e){
+  const first=e.opts[0];
+  return `<li class="tl-li kind-alt">
+  <div class="tl-time num"><b>${esc(first[1].start)}</b></div>
+  <div class="tl-rail fork" aria-hidden="true"></div>
+  <div class="alt-wrap">
+    <div class="alt-head"><b>多選一</b><span>還沒決定，${e.opts.length} 個選項選一個</span></div>
+    ${e.opts.map(([id,it],k)=>`<div class="alt-opt" data-id="${esc(id)}">${cardHTML(id,it,{letter:String.fromCharCode(65+k)})}</div>`).join("")}
+    <div class="alt-more w"><button class="btn sm" type="button" data-act="alt-add" data-src="${esc(first[0])}">＋ 再加一個選項</button></div>
+  </div></li>`;
+}
+function cardHTML(id,it,o){
+  o=o||{};
+  const ex=expsFor(id);const sum=ex.reduce((s,[,e])=>s+toK(e),0);const open=openExp.has(id);
+  const mv=it.kind==="move";
+  const canAlt=!mv&&it.kind!=="flight"&&!o.letter&&!o.rest;
+  return `<article class="tl-card ${flash.has(id)?"flash":""}">
+    ${o.letter?`<div class="alt-top"><span class="alt-l">${o.letter}</span><span class="alt-tm num">${esc(it.start)}${it.end?"–"+esc(it.end):""}</span><button class="btn sm warm w" type="button" data-act="alt-pick">選這個</button></div>`:""}
+    <div class="tags">${o.rest?'<span class="alt-done">多選一・已選定</span>':""}${tagHTML(it)}${legHTML(id,it)}${it.must?'<span class="must-b">必去</span>':""}</div>
     <h4>${esc(it.title)}</h4>
     ${it.desc?`<p class="desc">${esc(it.desc)}</p>`:""}
     ${it.kind==="meal"&&it.eat?`<div class="eat"><b>必吃</b>${eatHTML(it.eat)}</div>`:""}
@@ -853,12 +912,13 @@ function itemHTML(id,it){
     ${mv||it.kind==="flight"||!hasNav(it)?"":`<div class="nav-row">${navHTML(it)}${it.loc&&(it.loc.src==="auto"||it.loc.src==="addr")?`<span class="hint">位置是用地址搜尋找到的，出發前可以先點一下確認</span>`:""}</div>`}
     ${linksHTML(it.links)}
     <div class="card-foot">
-      <span class="foot-l">${ex.length?`<button class="spend has" type="button" data-act="exp" aria-expanded="${open}">已花 <span class="num">${fmtK(sum)}</span>・${ex.length} 筆</button>`:(mv?"":`<button class="spend w" type="button" data-act="add-exp">＋ 記一筆</button>`)}${mv?"":`<button class="spend w" type="button" data-act="pk-add">＋ 停車場</button>`}${mv||validLoc(it.loc)?"":`<button class="spend w" type="button" data-act="edit-loc">＋ 位置</button>`}</span>
+      <span class="foot-l">${ex.length?`<button class="spend has" type="button" data-act="exp" aria-expanded="${open}">已花 <span class="num">${fmtK(sum)}</span>・${ex.length} 筆</button>`:(mv?"":`<button class="spend w" type="button" data-act="add-exp">＋ 記一筆</button>`)}${mv?"":`<button class="spend w" type="button" data-act="pk-add">＋ 停車場</button>`}${mv||validLoc(it.loc)?"":`<button class="spend w" type="button" data-act="edit-loc">＋ 位置</button>`}${canAlt?`<button class="spend w" type="button" data-act="alt-add">＋ 多選一</button>`:""}</span>
       <button class="edit-btn w" type="button" data-act="edit">編輯</button>
     </div>
     ${open&&ex.length?`<div class="exp-in">${ex.map(([eid,e])=>expRow(eid,e)).join("")}<div class="w"><button class="btn sm warm" type="button" data-act="add-exp">＋ 再記一筆</button></div></div>`:""}
+    ${o.rest?`<div class="alt-rest"><span>沒選的：</span>${o.rest.map(([rid,r])=>`<button class="spend w" type="button" data-act="alt-pick" data-pick="${esc(rid)}">改選「${esc(r.title)}」</button>`).join("")}<button class="spend w" type="button" data-act="alt-clear">回到還沒決定</button></div>`:""}
     ${it.byName?`<p class="by">最後由 ${esc(it.byName)} 更新</p>`:""}
-  </article></li>`;
+  </article>`;
 }
 /* 位置：從 Naver 連結／分享內容／地址找座標；車程：用開放地圖路線服務（OSRM）算開車距離與時間 */
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
@@ -906,18 +966,22 @@ function navHTML(it){
 }
 function fmtMin(m){m=Math.max(1,Math.round(m));return m<60?`${m} 分`:`${Math.floor(m/60)} 小時 ${m%60} 分`}
 const lk=l=>l.lat.toFixed(5)+","+l.lng.toFixed(5);
-S.legKeys=new Map();const legPending=new Set(),legFailed=new Set(),legQ=[];let legBusy=false;
+S.legKeys=new Map();S.legWait=new Set();const legPending=new Set(),legFailed=new Set(),legQ=[];let legBusy=false;
 function scheduleLegs(){clearTimeout(scheduleLegs.t);scheduleLegs.t=setTimeout(planLegs,600)}
 function planLegs(){
-  const all=[...S.items.entries()].sort((a,b)=>(Number(a[1].day)-Number(b[1].day))||mins(a[1].start)-mins(b[1].start)||(a[1].order||0)-(b[1].order||0));
-  const keys=new Map();let prev=null;
-  for(const [id,it] of all){
-    if(!validLoc(it.loc))continue;
-    if(prev){const key=lk(prev.loc)+">"+lk(it.loc);keys.set(id,key);
-      if((!it.leg||it.leg.key!==key)&&!legPending.has(key)&&!legFailed.has(key)&&db){legPending.add(key);legQ.push([id,key,prev.loc,it.loc])}}
-    prev=it;
+  const keys=new Map(),wait=new Set();let prev=null,undecided=false;
+  const addLeg=(id,it)=>{const key=lk(prev.loc)+">"+lk(it.loc);keys.set(id,key);
+    if((!it.leg||it.leg.key!==key)&&!legPending.has(key)&&!legFailed.has(key)&&db){legPending.add(key);legQ.push([id,key,prev.loc,it.loc])}};
+  for(let d=1;d<=DATES.length;d++)for(const e of dayEntries(d)){
+    if(e.opts){ /* 還沒決定：每個選項各自算跟上一站的車程，下一站要等選好才算 */
+      if(prev)e.opts.forEach(([id,it])=>{if(validLoc(it.loc))addLeg(id,it)});
+      prev=null;undecided=true;continue;
+    }
+    if(!validLoc(e.it.loc))continue;
+    if(prev)addLeg(e.id,e.it);else if(undecided)wait.add(e.id);
+    prev=e.it;undecided=false;
   }
-  S.legKeys=keys;renderAll();runLegs();
+  S.legKeys=keys;S.legWait=wait;renderAll();runLegs();
 }
 async function runLegs(){
   if(legBusy)return;legBusy=true;
@@ -936,7 +1000,8 @@ async function runLegs(){
   legBusy=false;renderAll();
 }
 function legHTML(id,it){
-  const key=S.legKeys.get(id);if(!key)return "";
+  const key=S.legKeys.get(id);
+  if(!key)return S.legWait.has(id)?`<span class="tag t-leg">上一站還沒決定，選好才算車程</span>`:"";
   if(it.leg&&it.leg.key===key)return `<span class="tag t-leg">距上一站 ${it.leg.km} km・車程約 ${fmtMin(it.leg.min)}</span>`;
   if(legFailed.has(key))return `<span class="tag t-leg">暫時算不出車程</span>`;
   return `<span class="tag t-leg">車程計算中…</span>`;
@@ -982,7 +1047,7 @@ function renderDay(bounce){
   let body;
   if(!db&&dbChecked)body=`<p class="notice">還沒連上共用資料，請看頁面最上方的說明。</p>`;
   else if(!list.length)body=S.loaded.items?`<p class="empty">這一天還沒有行程。按下方「新增行程」加第一站。</p>`:`<p class="empty">行程載入中…</p>`;
-  else body=`<ol class="tl">${list.map(([id,it])=>itemHTML(id,it)).join("")}</ol>`;
+  else body=`<ol class="tl">${dayEntries(curDay).map(e=>e.opts?altHTML(e):itemHTML(e.id,e.it,e.rest)).join("")}</ol>`;
   v.innerHTML=`<div class="${bounce?"bounce":""}" style="display:flex;flex-direction:column;gap:12px">
     <div class="box day-head"><div class="row"><h3>Day ${curDay}・${esc(dd.title||dlabel(i))}</h3><button class="edit-btn w" type="button" data-act="edit-day">編輯</button></div>
     <p class="meta">${esc(dlabel(i))}${h?`・今晚住 ${esc(h.name)}`:"・回台灣"}</p>
@@ -1056,19 +1121,35 @@ async function write(fn,ok){
 /* 行程對話框 */
 const itemDlg=$("#itemDlg"),expDlg=$("#expDlg"),dayDlg=$("#dayDlg");
 $("#f-day").innerHTML=DATES.map((d,i)=>`<option value="${i+1}">Day ${i+1}・${dlabel(i)}</option>`).join("");
-function openItem(id){
-  editId=id;const it=id?S.items.get(id):{day:curDay,kind:"spot",transport:"自駕",start:"",end:"",title:"",links:[]};
-  $("#itemDlgH").textContent=id?"編輯行程":"新增行程";
+function fillAlt(day,selfId,sel){
+  const gs=altGroupsOf(day),seen=new Set();let html=`<option value="">不用，這是確定的行程</option>`;
+  for(const [id,it] of itemsOf(day)){
+    if(id===selfId||it.kind==="move"||it.kind==="flight")continue;
+    const grp=it.altGroup&&gs.get(it.altGroup);
+    if(grp){if(seen.has(it.altGroup))continue;seen.add(it.altGroup)}
+    const names=(grp?grp.filter(e=>e[0]!==selfId):[[id,it]]).map(e=>e[1].title).join("／");
+    html+=`<option value="${esc(id)}">和「${esc(names)}」多選一</option>`;
+  }
+  const el=$("#f-alt");el.innerHTML=html;el.value=sel||"";if(el.selectedIndex<0)el.value="";
+}
+function showAltField(){const k=$("#f-kind").value;$("#f-alt-wrap").hidden=k==="move"||k==="flight"}
+function openItem(id,altOf){
+  const src=altOf&&S.items.get(altOf);
+  editId=id;const it=id?S.items.get(id):src?{day:src.day,kind:src.kind,transport:src.transport,start:src.start,end:src.end,title:"",links:[]}:{day:curDay,kind:"spot",transport:"自駕",start:"",end:"",title:"",links:[]};
+  $("#itemDlgH").textContent=id?"編輯行程":src?"新增另一個選項":"新增行程";
+  let altSel=src?altOf:"";
+  if(id&&it.altGroup){const g=altGroupsOf(Number(it.day)).get(it.altGroup);if(g)altSel=(g.find(e=>e[0]!==id)||[""])[0]}
+  dlgAltSelf=id;fillAlt(Number(it.day),id,altSel);
   $("#f-day").value=String(it.day);$("#f-kind").value=it.kind||"spot";$("#f-start").value=it.start||"";$("#f-end").value=it.end||"";
   $("#f-title").value=it.title||"";$("#f-tr").value=it.transport||"自駕";$("#f-travel").value=it.travel||"";$("#f-must").checked=!!it.must;
   $("#f-desc").value=it.desc||"";$("#f-note").value=it.note||"";$("#f-eat").value=it.eat||"";
-  $("#f-eat-wrap").hidden=$("#f-kind").value!=="meal";
+  $("#f-eat-wrap").hidden=$("#f-kind").value!=="meal";showAltField();
   $("#f-links").value=(it.links||[]).map(l=>[l.t,l.u,l.lang].filter(Boolean).join(" | ")).join("\n");
   dlgLoc=validLoc(it.loc)?{...it.loc}:null;dlgLocText=it.locText||"";$("#f-loc").value=dlgLocText;showLocSt();
   const del=$("#itemDel");del.hidden=!id;del.textContent="刪除這個行程";del.dataset.armed="";
   itemDlg.showModal();
 }
-let dlgLoc=null,dlgLocText="";
+let dlgLoc=null,dlgLocText="",dlgAltSelf=null;
 function showLocSt(msg,bad){const el=$("#f-loc-st");el.classList.toggle("bad",!!bad);el.textContent=msg||(dlgLoc?`已設定位置（${dlgLoc.src==="gps"?"現在位置":dlgLoc.src==="naver"?"Naver 連結":"地址搜尋"}）`:"還沒有位置")}
 $("#f-loc-clr").addEventListener("click",()=>{dlgLoc=null;$("#f-loc").value="";showLocSt()});
 $("#itemForm").addEventListener("submit",async ev=>{
@@ -1092,11 +1173,24 @@ $("#itemForm").addEventListener("submit",async ev=>{
   data.loc=dlgLoc||null;data.locText=locText;data.naverUrl=naverUrlIn(locText);if(locQuery)data.locQuery=locQuery;
   if(myName)data.byName=myName;
   if(!data.title||!data.start)return;
-  const id=editId;itemDlg.close();
-  const ok=await write(()=>id?db.doc("items/"+id).update(data):db.collection("items").add(Object.assign({order:99},data)),id?"已更新，大家都看得到了":"已新增行程");
+  const id=editId;const old=id?S.items.get(id):null;
+  const altVal=$("#f-alt-wrap").hidden?"":$("#f-alt").value;const target=altVal&&S.items.get(altVal);
+  const gid=target?(target.altGroup||"g"+newKey().slice(0,12)):null;
+  data.altGroup=gid;data.altPicked=!!(gid&&old&&old.altGroup===gid&&old.altPicked);
+  itemDlg.close();
+  const ok=await write(()=>{
+    if(target&&!target.altGroup){ /* 第一次分支：原本的行程也要一起變成選項 */
+      const b=fdb.batch();
+      b.update(db.doc("items/"+altVal),{altGroup:gid,altPicked:false});
+      if(id)b.update(db.doc("items/"+id),data);else b.set(db.collection("items").doc(),Object.assign({order:99},data));
+      return b.commit();
+    }
+    return id?db.doc("items/"+id).update(data):db.collection("items").add(Object.assign({order:99},data));
+  },id?"已更新，大家都看得到了":"已新增行程");
   if(ok&&data.day!==curDay){curDay=data.day;renderTabs();renderDay(true)}
 });
-$("#f-kind").addEventListener("change",()=>{$("#f-eat-wrap").hidden=$("#f-kind").value!=="meal"});
+$("#f-kind").addEventListener("change",()=>{$("#f-eat-wrap").hidden=$("#f-kind").value!=="meal";showAltField()});
+$("#f-day").addEventListener("change",()=>fillAlt(Number($("#f-day").value),dlgAltSelf,""));
 $("#itemDel").addEventListener("click",async e=>{
   const b=e.currentTarget;if(!b.dataset.armed){b.dataset.armed="1";b.textContent="再按一次確定刪除";return}
   const id=editId;itemDlg.close();await write(()=>db.doc("items/"+id).delete(),"已刪除這個行程");
@@ -1162,6 +1256,12 @@ document.addEventListener("click",async e=>{
   if(act==="edit")openItem(id);
   else if(act==="edit-loc"){openItem(id);setTimeout(()=>$("#f-loc").focus(),60)}
   else if(act==="add-item")openItem(null);
+  else if(act==="alt-add")openItem(null,t.dataset.src||id);
+  else if(act==="alt-pick"||act==="alt-clear"){
+    const tid=t.dataset.pick||id;const it=S.items.get(tid);if(!it)return;
+    const g=altGroupsOf(Number(it.day)).get(it.altGroup)||[];const on=act==="alt-pick";
+    await write(()=>{const b=fdb.batch();g.forEach(([gid])=>b.update(db.doc("items/"+gid),{altPicked:on&&gid===tid}));return b.commit()},on?`選好了：${it.title}，大家都看得到了`:"回到還沒決定了");
+  }
   else if(act==="add-exp")openExpDlg(id||"");
   else if(act==="exp"){openExp.has(id)?openExp.delete(id):openExp.add(id);renderDay(false)}
   else if(act==="pk-add"){pkItem=id;$("#pkFor").textContent=(S.items.get(id)||{}).title||"";["#p-name","#p-addr","#p-url","#p-note"].forEach(s=>$(s).value="");pkDlg.showModal()}
