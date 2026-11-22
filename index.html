@@ -257,6 +257,7 @@ section{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 64px);display:flex
 .stay h3{font-size:17px}
 .stay p{font-size:13.5px;color:var(--muted)}
 .stay.tonight{background:var(--mist)}
+.stay.miss{border-style:dashed;background:var(--paper)}
 
 /* 表單與對話框 */
 .fld{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
@@ -600,7 +601,7 @@ dialog h3{font-size:19px}
     <svg width="30" height="30" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 14 L15 5 L26 14 V26 H4 Z" fill="#FCF1D0" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/><rect x="12" y="17" width="6" height="9" fill="#22396F" stroke="#3E3A39" stroke-width="2.5"/></svg>
     <h2 id="stayH">住宿</h2>
   </div>
-  <p class="hint">動線：濟州市 → 西歸浦 → 西南部安德面 → 涯月 → 濟州市</p>
+  <p class="hint" id="stayRoute"></p>
   <div class="stays" id="stays"></div>
 </section>
 
@@ -724,6 +725,7 @@ const WD=["日","一","二","三","四","五","六"];
 const DEPART=Date.parse("2026-12-06T14:25:00+08:00");
 const g=q=>"https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(q);
 const n=q=>"https://map.naver.com/p/search/"+encodeURIComponent(q);
+const n_=n;
 const HOTELS=[
   {name:"Shinshin Hotel Jeju Airport",area:"濟州市・機場附近",when:"12/6・1 晚",rooms:"2 間房",dates:["2026-12-06"],g:"Shinshin Hotel Jeju Airport",n:"신신호텔 제주공항점"},
   {name:"Te mata Hotel Seogwipo",area:"西歸浦",when:"12/7・1 晚",rooms:"2 間房",dates:["2026-12-07"],g:"Te mata Hotel Seogwipo",n:"Te mata Hotel 서귀포"},
@@ -815,7 +817,35 @@ function linksHTML(links,max){
   if(!L.length)return "";
   return `<div class="lnks">${L.map(l=>`<a class="lnk" target="_blank" rel="noopener" href="${esc(l.u)}">${esc(l.t||"連結")}${l.lang?`<em>${esc(l.lang)}</em>`:""}</a>`).join("")}</div>`;
 }
-function hotelFor(i){return HOTELS.find(h=>h.dates.includes(DATES[i]))}
+/* 住宿：從行程自動偵測。名稱有「入住」的行程就是那晚住的地方；
+   沒有新的入住、也沒有「退房」的日子，就是續住前一晚的地方 */
+const isCheckIn=it=>!!it&&it.kind!=="move"&&/入住|check.?in/i.test(it.title||"");
+const isCheckOut=it=>!!it&&/退房|check.?out/i.test(it.title||"");
+function stayName(t){const x=String(t||"").replace(/[・·].*$/,"").replace(/\s*(入住|check.?in)\s*/gi," ").trim();return x||String(t||"").trim()}
+function hotelRef(name){const k=name.toLowerCase().replace(/\s+/g," ");return HOTELS.find(h=>h.name.toLowerCase().startsWith(k)||k.startsWith(h.name.toLowerCase()))||null}
+function nightsPlan(){
+  const out=[];let prev=null;
+  for(let d=1;d<=DATES.length;d++){
+    let night=null,out_=false;
+    for(const e of dayEntries(d)){
+      if(e.opts){const c=e.opts.filter(o=>isCheckIn(o[1]));if(c.length){night={alt:true,names:c.map(o=>stayName(o[1].title)),id:c[0][0],it:c[0][1],day:d}}else if(e.opts.some(o=>isCheckOut(o[1])))out_=true;continue}
+      if(isCheckIn(e.it))night={id:e.id,it:e.it,name:stayName(e.it.title),day:d};
+      else if(isCheckOut(e.it))out_=true;
+    }
+    if(!night&&!out_&&prev&&d<DATES.length)night=Object.assign({},prev,{carry:true});
+    out.push(night);prev=night;
+  }
+  return out;
+}
+function stayMap(n){
+  if(!n||n.alt)return "";
+  const ref=hotelRef(n.name);
+  return {g:g(ref?ref.g:n.name),n:safeUrl(n.it.naverUrl)||n_(n.it.locQuery||(ref?ref.n:n.name))};
+}
+function hotelFor(i){
+  const n=nightsPlan()[i];if(!n)return null;
+  return {name:n.alt?"還沒決定："+n.names.join("／"):n.name,map:n.alt?"":stayMap(n).g};
+}
 function renderNow(){
   const box=$("#now");const sn=seoulNow();const live=DATES.indexOf(sn.date);
   let mode=live>=0?"live":(sn.date<DATES[0]?"pre":"post");
@@ -852,7 +882,7 @@ function renderNow(){
   box.innerHTML=`<div class="now-top"><span class="lbl">${esc(lbl)}</span>${navBtns}</div>${heroHTML}${nextHTML}
   <ol class="mini">${list.map(([id,it])=>`<li class="${state[id]||""} ${it.kind==="move"?"mv":""}"><span class="tm num">${esc(it.start)}</span><span class="ic" aria-hidden="true">${KIND_IC[it.kind]||KIND_IC.spot}</span><span>${esc(it.title)}${it.must?' <span class="must-b">必去</span>':""}${it.kind==="alt"?' <span class="alt-w">還沒決定</span>':""}</span></li>`).join("")}</ol>
   ${bkLines((S.days.get(String(day))||{}).backup).length?`<p class="stay-line">備案景點：${esc(bkLines(S.days.get(String(day)).backup).join("、"))}</p>`:""}
-  <p class="stay-line"><svg width="18" height="18" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 14 L15 5 L26 14 V26 H4 Z" fill="#FCF1D0" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/></svg>${h?`今晚住 ${esc(h.name)}・<a href="${g(h.g)}" target="_blank" rel="noopener">地圖</a>`:"今晚回到台灣的家"}</p>`;
+  <p class="stay-line"><svg width="18" height="18" viewBox="0 0 30 30" aria-hidden="true"><path d="M4 14 L15 5 L26 14 V26 H4 Z" fill="#FCF1D0" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/></svg>${h?`今晚住 ${esc(h.name)}${h.map?`・<a href="${esc(h.map)}" target="_blank" rel="noopener">地圖</a>`:""}`:(i===DATES.length-1?"今晚回到台灣的家":"今晚住哪還沒排進行程")}</p>`;
 }
 function heroLinks(it){
   const pk=(it.parking||[]).slice(0,2).map(p=>({t:"停車場・"+p.name,u:safeUrl(p.u)||g(p.addr||p.name)}));
@@ -1050,7 +1080,7 @@ function renderDay(bounce){
   else body=`<ol class="tl">${dayEntries(curDay).map(e=>e.opts?altHTML(e):itemHTML(e.id,e.it,e.rest)).join("")}</ol>`;
   v.innerHTML=`<div class="${bounce?"bounce":""}" style="display:flex;flex-direction:column;gap:12px">
     <div class="box day-head"><div class="row"><h3>Day ${curDay}・${esc(dd.title||dlabel(i))}</h3><button class="edit-btn w" type="button" data-act="edit-day">編輯</button></div>
-    <p class="meta">${esc(dlabel(i))}${h?`・今晚住 ${esc(h.name)}`:"・回台灣"}</p>
+    <p class="meta">${esc(dlabel(i))}${h?`・今晚住 ${esc(h.name)}`:(i===DATES.length-1?"・回台灣":"・住宿還沒排")}</p>
     ${dd.note?`<p class="day-note">${esc(dd.note)}</p>`:""}</div>
     ${body}
     <div class="add-row w"><button class="btn warm" type="button" data-act="add-item">＋ 新增行程</button></div>
@@ -1094,14 +1124,32 @@ function renderTodos(){
 
 /* 住宿 */
 function renderStays(){
-  const live=tripIdx();
-  $("#stays").innerHTML=HOTELS.map(h=>`<article class="box stay ${live>=0&&h.dates.includes(DATES[live])?"tonight":""}"><span class="when">${esc(h.when)}</span><h3>${esc(h.name)}</h3><p>${esc(h.area)}・${esc(h.rooms)}</p>${h.extra?`<p>${esc(h.extra)}</p>`:""}<div class="lnks"><a class="lnk" target="_blank" rel="noopener" href="${g(h.g)}">Google 地圖</a><a class="lnk" target="_blank" rel="noopener" href="${n(h.n)}">Naver 地圖<em>韓文</em></a></div></article>`).join("");
+  const live=tripIdx();const box=$("#stays"),route=$("#stayRoute");
+  if(!S.loaded.items&&!S.items.size){route.textContent="";box.innerHTML=`<p class="hint">住宿載入中…</p>`;return}
+  const plan=nightsPlan();const cards=[];
+  for(let i=0;i<DATES.length-1;i++){
+    const nt=plan[i];const last=cards[cards.length-1];
+    if(nt&&last&&last.nt&&last.nt.id===nt.id){last.to=i;continue}
+    cards.push({nt,from:i,to:i});
+  }
+  const md=i=>{const d=new Date(DATES[i]+"T12:00:00+09:00");return `${d.getUTCMonth()+1}/${d.getUTCDate()}`};
+  const names=cards.filter(c=>c.nt).map(c=>c.nt.alt?c.nt.names.join("／"):c.nt.name);
+  route.textContent=names.length?"住宿順序："+names.join(" → "):"";
+  box.innerHTML=cards.map(c=>{
+    const nights=c.to-c.from+1;const when=`${md(c.from)}${nights>1?"–"+md(c.to):""}・${nights} 晚`;
+    const tonight=live>=c.from&&live<=c.to;
+    if(!c.nt)return `<article class="box stay miss"><span class="when">${when}</span><h3>住宿還沒排</h3><p>在 Day ${c.from+1} 的行程裡加一個名稱有「入住」的行程，這裡就會自動出現。</p></article>`;
+    const it=c.nt.it;
+    if(c.nt.alt)return `<article class="box stay ${tonight?"tonight":""}" data-id="${esc(c.nt.id)}"><span class="when">${when}</span><h3>還沒決定</h3><p>${esc(c.nt.names.join("／"))}</p><p class="hint">到 Day ${c.nt.day} 的行程選好，這裡就會更新。</p></article>`;
+    const m=stayMap(c.nt);
+    return `<article class="box stay ${tonight?"tonight":""}" data-id="${esc(c.nt.id)}"><span class="when">${when}</span><h3>${esc(c.nt.name)}</h3><p>Day ${c.nt.day} ${esc(it.start)} 入住</p>${it.desc?`<p>${esc(it.desc)}</p>`:""}${it.note?`<p>${esc(it.note)}</p>`:""}<div class="lnks"><a class="lnk" target="_blank" rel="noopener" href="${esc(m.g)}">Google 地圖</a><a class="lnk" target="_blank" rel="noopener" href="${esc(m.n)}">Naver 地圖<em>韓文</em></a></div><div class="w"><button class="edit-btn" type="button" data-act="edit">編輯這個行程</button></div></article>`;
+  }).join("")||`<p class="hint">行程裡還沒有住宿。</p>`;
 }
 
 function fillNames(){}
 
 let raf=0;
-function renderAll(){cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{renderNow();renderDay(false);renderRain();renderMoney();renderTodos()})}
+function renderAll(){cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{renderNow();renderDay(false);renderRain();renderMoney();renderTodos();renderStays()})}
 
 /* 同步狀態 */
 function setSync(s,t){$("#sync").dataset.s=s;$("#syncTxt").textContent=t}
